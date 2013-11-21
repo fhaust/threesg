@@ -1,12 +1,9 @@
 
 import Data.OFF 
-import Data.Octree
 
 
 
 import Data.List
-
-import qualified Data.Octree as O
 
 import qualified Data.Foldable as F
 import qualified Data.Traversable as T
@@ -28,15 +25,12 @@ main = do
 
   let vs' = V.fromList $ fixSize . F.toList $ vs
   
-  let oct = O.fromList' 4 vs'
-  
   --displayPointCloudColor (F.toList vs) (F.toList cs)
   --displayPointCloud (F.toList vs) white
   --displayPointCloud vs white
   
   display Nothing "Pointcloud!" $ 
     VisObjects [ Points (fixSize . F.toList$ vs') Nothing white 
-               , toPicture oct
                ]
 
 
@@ -63,9 +57,3 @@ mean :: (Fractional b, F.Foldable f) => f b -> b
 mean = uncurry (/) . F.foldl' (\(s,l) v -> (s+v,l+1)) (0,0)
 
 
-
-testTree = do
-  (Right off) <- readCNOFF "data/face_point_set.cnoff"
-  let (vs,ns,cs) = V.unzip3 off
-
-  return $ O.fromList' 5 vs

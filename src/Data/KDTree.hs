@@ -32,6 +32,8 @@ kdtree d fs | d < 1 || V.null fs = Leaf fs
             | otherwise = do
               
               let p = mean fs
+
+
               --let n = normalize . stddev p $ fs
               let n = [V3 1 0 0, V3 0 1 0, V3 0 0 1] !! (d `mod` 3)
 
@@ -44,64 +46,35 @@ kdtree d fs | d < 1 || V.null fs = Leaf fs
 
 --------------------------------------------------
 
---nearestNeighbor t q = head $ nearestNeighbors t q
+-- | get the nearest neighbor of point q
+nearestNeighbor t q = if L.null nns then Nothing else Just (head nns) 
+  where nns = nearestNeighbors t q
 
-nearestNeighbor (Leaf vs)        q | V.null vs = Nothing
-                                   | otherwise = Just $ V.minimumBy (compare `on` qd q) vs
-nearestNeighbor (Node p n l r) q =
-
-  --let d = dist p n q
-  let d = distPlanePoint p n q 
-
-      nnl = nearestNeighbor l q
-      nnr = nearestNeighbor r q
-
-  in if d < 0 then decide q d nnl nnr 
-              else decide q d nnr nnl
-
-{-# INLINE decide #-}
-decide _ _ Nothing  b         = b
-decide q d (Just a) (Just b)  | qd q a < d^(2::Int) || (qd q a < qd q b) = Just a
-                              | otherwise                                = Just b
-decide _ _ a        Nothing   = a
 --------------------------------------------------
 
-nearestNeighbors (Leaf vs)      q = L.sortBy (compare `on` qd q) 
-                                  . V.toList $ vs
-nearestNeighbors (Node p n l r) q =
+-- | get all points in the tree, sorted by distance to the 'q'uery point
+-- | this is the 'bread and butter' function and should be quite fast
+nearestNeighbors (Leaf vs)      q = L.sortBy (compare `on` qd q) . V.toList $ vs
+nearestNeighbors (Node p n l r) q = if d < 0 then go nnl nnr else go nnr nnl
 
-  let d   = distPlanePoint p n q 
-   
-      nnl = nearestNeighbors l q 
-      nnr = nearestNeighbors r q 
+  where d   = distPlanePoint p n q
 
-  in if d < 0 then ordMerge q p n d nnl nnr
-              else ordMerge q p n d nnr nnl
-  
-{-# INLINE ordMerge #-}
---ordMerge _ _ _ _ []     bs      = bs
---ordMerge q p n d (a:as) bs      | qd q a < d^(2::Int) = a : ordMerge q p n d as bs 
---ordMerge _ _ _ _ as     []      = as
---ordMerge q p n d (a:as) (b:bs)  | qd q a < qd q b     = a : ordMerge q p n d as (b:bs) 
---                                | otherwise           = b : ordMerge q p n d (a:as) bs
+        nnl = nearestNeighbors l q 
+        nnr = nearestNeighbors r q 
 
-ordMerge q p n d = go
-  where go []     bs     = bs
+        go []     bs     = bs
         go (a:as) bs     | qdq a < d^(2::Int) = a : go as bs
         go as     []     = as
-        go (a:as) (b:bs) | qdq a < qdq b = a : go as (b:bs)
-                         | otherwise     = b : go (a:as) bs
+        go (a:as) (b:bs) | qdq a < qdq b      = a : go as (b:bs)
+                         | otherwise          = b : go (a:as) bs
 
         qdq = qd q
 
+--------------------------------------------------
 
-
---ordMerge q p n d as bs = safe ++ Ord.mergeBy (compare `on` qd q) unsafe bs
---  where (safe,unsafe) = V.span (\x -> qd q x < d^(2::Int)) as
-
-
-             
-
+-- | return the points around a 'q'uery point up to radius 'r'
+pointsAround t q r = takeWhile ((< r) . qd q) nns
+  where nns = nearestNeighbors t q
 
 --------------------------------------------------
 
@@ -109,12 +82,11 @@ ordMerge q p n d = go
 distPlanePoint :: (Metric f, Num a) => f a -> f a -> f a -> a 
 distPlanePoint p n x = n `dot` (x ^-^ p)
 
-{-# INLINE dist' #-}
-dist' :: (a -> Double) -> a -> a -> Double
-dist' f a b = f a - f b
-
-mean :: (Fractional c, V.Storable c) => V.Vector c -> c
 mean = uncurry (/) . V.foldl' (\(s,l) b -> (s+b,l+1)) (0,0)
+
+stddev m vs = fmap sqrt . (/ (n-1)) . V.sum . V.map (\x -> (x - m)^2) $ vs
+  where n = fromIntegral . V.length $ vs
+        
 
 --------------------------------------------------
 

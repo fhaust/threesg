@@ -4,7 +4,6 @@ import Criterion.Main
 
 import Data.OFF
 
-import qualified Data.Octree as Oct
 import qualified Data.KDTree as KD 
 
 import qualified Data.Vector as V
@@ -24,30 +23,18 @@ import Linear
 
 
 
-instance NFData a => NFData (V3 a) where
-  rnf (V3 x y z) = rnf x `seq` rnf y `seq` rnf z
-
-instance Random a => Random (V3 a) where
-  random g0 = (V3 x y z, g3)
-    where (x,g1) = random g0
-          (y,g2) = random g1
-          (z,g3) = random g2
-  randomR (V3 lox loy loz, V3 hix hiy hiz) g0 = (V3 x y z, g3)
-    where (x,g1) = randomR (lox,hix) g0
-          (y,g2) = randomR (loy,hiy) g1
-          (z,g3) = randomR (loz,hiz) g2
 
 
 main :: IO ()
 main = do
 
   -- my test data set ... kind of personal ... ie ... my face :)
-  --(Right off) <- readCNOFF "data/face_point_set.cnoff"
+  --Right off <- readCNOFF "data/face_point_set.cnoff"
   --let (vs,ns,cs) = V.unzip3 off 
 
-  -- create 500k samples
+  -- create some samples
   gen <- getStdGen
-  let vs = V.fromListN 5000 $ randoms gen :: V.Vector (V3 Double)
+  let vs = V.fromListN 500000 $ randoms gen :: V.Vector (V3 Double)
 
   
 
@@ -64,3 +51,19 @@ main = do
      , bench  "kdtree"     $ nf (KD.nearestNeighbor kd) 0 
      , bench  "kdtree_all" $ nf (L.take 5 . KD.nearestNeighbors kd) 0
      ]
+
+--------------------------------------------------
+-- Orphan Instances
+
+instance NFData a => NFData (V3 a) where
+  rnf (V3 x y z) = rnf x `seq` rnf y `seq` rnf z
+
+instance Random a => Random (V3 a) where
+  random g0 = (V3 x y z, g3)
+    where (x,g1) = random g0
+          (y,g2) = random g1
+          (z,g3) = random g2
+  randomR (V3 lox loy loz, V3 hix hiy hiz) g0 = (V3 x y z, g3)
+    where (x,g1) = randomR (lox,hix) g0
+          (y,g2) = randomR (loy,hiy) g1
+          (z,g3) = randomR (loz,hiz) g2
