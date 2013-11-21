@@ -28,7 +28,7 @@ data KDTree a = Node { _point  :: a
 --------------------------------------------------
 
 kdtree :: Int -> V.Vector (V3 Double) -> KDTree (V3 Double) 
-kdtree d fs | d < 1 || V.null fs = Leaf fs
+kdtree d fs | d < 1 || V.length fs < 64 = Leaf fs
             | otherwise = do
               
               let p = mean fs
@@ -47,8 +47,8 @@ kdtree d fs | d < 1 || V.null fs = Leaf fs
 --------------------------------------------------
 
 -- | get the nearest neighbor of point q
-nearestNeighbor t q = if L.null nns then Nothing else Just (head nns) 
-  where nns = nearestNeighbors t q
+-- | note: dies if you pass it an empty tree
+nearestNeighbor t = head . nearestNeighbors t
 
 --------------------------------------------------
 
@@ -62,18 +62,22 @@ nearestNeighbors (Node p n l r) q = if d < 0 then go nnl nnr else go nnr nnl
         nnl = nearestNeighbors l q 
         nnr = nearestNeighbors r q 
 
+        -- recursively merge the two children
+        -- the second line makes sure that points in the
+        -- 'safe' region are prefered 
         go []     bs     = bs
         go (a:as) bs     | qdq a < d^(2::Int) = a : go as bs
         go as     []     = as
         go (a:as) (b:bs) | qdq a < qdq b      = a : go as (b:bs)
                          | otherwise          = b : go (a:as) bs
 
+        -- quadratic distance to query point
         qdq = qd q
 
 --------------------------------------------------
 
 -- | return the points around a 'q'uery point up to radius 'r'
-pointsAround t q r = takeWhile ((< r) . qd q) nns
+pointsAround t r q = takeWhile ((< r) . qd q) nns
   where nns = nearestNeighbors t q
 
 --------------------------------------------------

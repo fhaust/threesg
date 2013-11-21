@@ -13,6 +13,7 @@ import qualified Data.Vector as V
 import Control.Applicative
 
 import qualified Data.KDTree as KD
+import qualified Data.LinSearch as LS
 
 import Data.OFF 
 
@@ -30,15 +31,20 @@ instance Arbitrary (V.Vector Vertex) where
   arbitrary = V.fromList . getNonEmpty <$> arbitrary 
 
 
-prop_hkd_is_hls :: (Int,Vertex,V.Vector Vertex) -> Bool
-prop_hkd_is_hls (d,p,vs) = treeSearch == linSearch
-  where treeSearch = KD.nearestNeighbor (KD.kdtree 8 . V.convert $ vs) p
-        linSearch  = Just $ V.minimumBy (compare `on` qd p) vs
+prop_nn :: (Int,Vertex,V.Vector Vertex) -> Bool
+prop_nn (d,p,vs) = treeSearch == linSearch
+  where treeSearch = KD.nearestNeighbor (KD.kdtree d . V.convert $ vs) p
+        linSearch  = LS.nearestNeighbor vs p
 
-prop_kd_is_ls :: (Int,Vertex,V.Vector Vertex) -> Bool
-prop_kd_is_ls (d,p,vs) = treeSearch == linSearch
-  where treeSearch = KD.nearestNeighbors (KD.kdtree 8 . V.convert $ vs) p
-        linSearch  = sortBy (compare `on` qd p) . V.toList $ vs
+prop_nn5 :: (Int,Vertex,V.Vector Vertex) -> Bool
+prop_nn5 (d,p,vs) = treeSearch == linSearch
+  where treeSearch = KD.nearestNeighbors (KD.kdtree d . V.convert $ vs) p
+        linSearch  = LS.nearestNeighbors vs p 
+
+prop_nr :: (Int,Vertex,Double,V.Vector Vertex) -> Bool
+prop_nr (d,p,r,vs) = treeSearch == linSearch
+  where treeSearch = KD.pointsAround (KD.kdtree d . V.convert $ vs) r p
+        linSearch  = LS.pointsAround vs r p
 
 main :: IO ()
 main = $defaultMainGenerator
