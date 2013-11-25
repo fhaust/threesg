@@ -36,8 +36,8 @@ prop_nn (d,p,vs) = treeSearch == linSearch
   where treeSearch = KD.nearestNeighbor (KD.kdtree d . V.convert $ vs) p
         linSearch  = LS.nearestNeighbor vs p
 
-prop_nn5 :: (Int,Vertex,V.Vector Vertex) -> Bool
-prop_nn5 (d,p,vs) = treeSearch == linSearch
+prop_nns :: (Int,Vertex,V.Vector Vertex) -> Bool
+prop_nns (d,p,vs) = treeSearch == linSearch
   where treeSearch = KD.nearestNeighbors (KD.kdtree d . V.convert $ vs) p
         linSearch  = LS.nearestNeighbors vs p 
 
